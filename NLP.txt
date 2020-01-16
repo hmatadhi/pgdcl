@@ -1,0 +1,50 @@
+NLP class 4-Jan-2020:
+   WordNet
+      princeton university
+      psycho linguistics
+      Geaorge Miller
+      Work In India
+          Pushpak Bhattacharya(IIT Mumbai)
+          Sanskrit Word Net
+          sanskrit.uohyd.ac.in
+          cfilt.iitb.ac.in/wordnet
+          cfilt.iitb.ac.in/indowordnet
+   SynSet 
+       Noun
+          Semantic Relation (Aarthika Sambadhaha)
+            (Parajati, AparaJati Bhavaha)
+               HyperNym 
+               HypoNym  
+                 (Collective Nouns,
+                     Example: HyperNym = Colour,
+                              HypoNym = Specific Colour: blue, red etc.)
+            (Avayava Avayavee Bhavaha) (Whole and Part Relationship)
+               Three types 
+                  Member of
+                  Substance of
+                  Part of 
+
+               HoloNym (Bigger One) 
+               MeroNym (Smaller One)
+          Lexical Relation (Pada Sambadhaha)
+               Antonyms, Syninyms
+      Verb
+         Semantic Relations
+             (Avantara Kriya) Related Sub-actions of a Bigger Action
+             Troponymy (Bigger Action)
+             Entailment (Smaller Action)
+                 Coexstensive (Continuous)
+                 Temporal Inclusion (Independent, not continuous)
+                    Limping
+         Lexical Relation
+              Antonym
+      Adverb
+
+      Adjective  
+
+शाब्द: इत्यस्य अर्थ: वाक्य:
+वााक्याात् जायमान: भोद: शाब्दभोद:
+अन्वय:
+प्रभु राम इति ख्यातो लक्षमणो
+
+Anu Vyvasaaye..      
