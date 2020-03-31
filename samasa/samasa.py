@@ -23,6 +23,9 @@ def d_to_v(input_string):
                       sanscript.SCHEMES[sanscript.DEVANAGARI],
                       sanscript.SCHEMES[sanscript.VELTHUIS])
       output_string = sanscript.transliterate(input_string, scheme_map=v_scheme_map)
+      print("Ascii translation for tokenization:\n")
+      scheme = detect.detect(output_string)
+      print("input: " + output_string + " ---   encoding = " + str(scheme))
     else:
       output_string = input_string
       #print("please enter the input in devanagari")
@@ -36,6 +39,9 @@ def d_to_i(input_string):
                       sanscript.SCHEMES[sanscript.DEVANAGARI],
                       sanscript.SCHEMES[sanscript.ITRANS])
       output_string = sanscript.transliterate(input_string, scheme_map=v_scheme_map)
+      print("Ascii translation for tokenization:")
+      scheme = detect.detect(output_string)
+      print("output: " + output_string + " ---   encoding = " + str(scheme))      
     else:
       output_string = input_string
       #print("please enter the input in devanagari")
@@ -85,22 +91,22 @@ class SamasaGenerator():
         sp =  "v1(" + pp + ") v6(" + up + ")";
         return sp;
     def t2(self,pp, up):
-        sp =  "v2(" + pp + ") v1(" + up + ")";
+        sp =  "v2(" + pp + ") " + up ;
         return sp;
     def t3(self,pp, up):
-        sp =  "v3(" + pp + ") v1(" + up + ")";
+        sp =  "v3(" + pp + ") " + up ;
         return sp;
     def t4(self,pp, up):
-        sp =  "v4(" + pp + ") v1(" + up + ")";
+        sp =  "v4(" + pp + ") " + up ;
         return sp;
     def t5(self,pp, up):
-        sp =  "v5(" + pp + ") v1(" + up + ")";
+        sp =  "v5(" + pp + ") " + up ;
         return sp;
     def t6(self,pp, up):
-        sp =  "v6(" + i_to_d(pp) + ") v1(" + i_to_d(up) + ")";
+        sp =  "v6(" + pp + ") " + up ;
         return sp;                                
     def t7(self,pp, up):
-        sp =  "v7(" + pp + ") v1(" + up + ")";
+        sp =  "v7(" + pp + ") " + up ;
         return sp; 
     def tn(self,pp, up):
         sp =  " न " + up;
@@ -244,16 +250,16 @@ class SamasaLexer(Lexer):
                TB,TG,TM,TN,TP,TK,\
                TDS,TDU,TDT,\
 #               E,S,U,D,\
-               WORD, HIPHEN, LPAREN, RPAREN, DANDA }
+               WORD, HIPHEN, LPAREN, RPAREN, DANDA, PLUS, NUMBER }
     ignore = ' \t'
 
     # Tokens
-
     HIPHEN   = r'-'
     LPAREN = r'<'
     RPAREN = r'>' 
-    DANDA = r'\|'   
-    TAG  = r'A[1-7]|Bs[2-7]|Bs[dgpsu]|Bsm[gn]|Bv[psSU]|B[bv]|D[is]|K[1-7]|Km|T[1-7]|T[bgmnpk]|Td[sut]'
+    DANDA = r'\|'
+    PLUS = r'\+'
+    TAG  = r'A[1-7]|Bs[2-7]|Bs[dgpsu]|Bsm[gn]|Bv[psSU]|B[bv]|D[is]|K[1-7]|Km|T[1-7]|T[bgmnpk]|Td[sut]|[KU]'
     #TAG  = r'A[1-6]|Bs[2-7]|Bs[dgpsu]|Bsm[gn]|Bv[sSU]|B[bv]|D[is]|K[1-5]|Km|T[1-7]|T[bgmnp]|Tds|[ESUd].'
     TAG['A1'] = A1
     TAG['A2'] = A2
@@ -308,12 +314,13 @@ class SamasaLexer(Lexer):
     #TAG['S.'] = S
     #TAG['U.'] = U
     #TAG['d.'] = D
-    WORD = r'[a-zA-Z_]+'
+    WORD = r'[a-zA-Z_~|]+'
+    NUMBER = r'[0-9]+'
     # Special symbols
     # Ignored pattern
     ignore_newline = r'\n+'
 
-    literals = { '<', '>' }
+    literals = { '<', '>'}
 
     # Extra action for newlines
     def ignore_newline(self, t):
@@ -331,7 +338,7 @@ class SamasaLexer(Lexer):
         t.type = '<'      # Set token type to the expected literal
         self.lastTag = '<'
         self.nesting_level += 1
-        print("New Lquote" + str(self.nesting_level))
+        #print("New Lquote" + str(self.nesting_level))
         return t
 
     @_(r'>')
@@ -339,9 +346,16 @@ class SamasaLexer(Lexer):
         t.type = '>'      # Set token type to the expected literal
         self.lastTag = '>'
         self.nesting_level -=1
-        print("End Lquote" + str(self.nesting_level))
+        #print("End Lquote" + str(self.nesting_level))
         return t 
+
+      
 '''
+    @_(r'[.*]+')
+    def any_character(self, t):
+        t.type = ANYCHARACTER
+        return t; 
+
     @_(r'E')
     def tag_E(self, t):
         if (self.lastTag == '>'):
@@ -409,94 +423,138 @@ class SamasaParser(Parser):
     def __init__(self):
         self.compounds = { }
 
+    @_('optcompound')
+    def sentence(self, p):
+        return p.optcompound
 
+    @_('compoundgroup empty')
+    def optcompound(self, p):
+        return p.compoundgroup
+
+    @_('')
+    def empty(self, p):
+        pass
+
+    @_('compound')
+    def compoundgroup(self, p):
+        return p.compound
+
+    @_('sentence shlokaend')
+    def sentence(self, p):
+        samasthaPada = p.sentence + " " + p.shlokaend
+        print("Sentence: Shloka Completion:" + samasthaPada)          
+        return samasthaPada
+
+    @_('sentence DANDA')
+    def sentence(self, p):
+        samasthaPada = p.sentence + " " + p.DANDA
+        print("Sentence: Completion:" + samasthaPada)          
+        return samasthaPada
+
+    @_('sentence compound')
+    def compoundgroup(self, p):
+        samasthaPada = p.sentence + " " + p.compound
+        print("Sentence: Compound Group:" + samasthaPada)          
+        return samasthaPada
+
+    @_('compound word')
+    def sentence(self, p):
+        samasthaPada = p.compound + " " + p.word
+        print("Sentence: Simple Join:" + samasthaPada)            
+        return samasthaPada
+
+    @_('word PLUS compound')
+    def sentence(self, p):
+        samasthaPada = p.word + "+" + p.compound
+        print("Sentence: Sandhi Join:" + samasthaPada)        
+        return  samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN A1')
     def compound(self, p):
-        print("New compond: Avyayi Bhava -> Avyaya Poorvapada")
+        print("Compound: Avyayi Bhava -> Avyaya Poorvapada")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.a1(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN A2')
     def compound(self, p):
-        print("New compond: Avyayi Bhava -> Avyaya Uttarapada")
+        print("Compound: Avyayi Bhava -> Avyaya Uttarapada")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.a2(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN A3')
     def compound(self, p):
-        print("New compond: Avyayi Bhava -> Tishtadgu Prabhrithi")
+        print("Compound: Avyayi Bhava -> Tishtadgu Prabhrithi")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.a3(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN A4')
     def compound(self, p):
-        print("New compond: Avyayi Bhava -> Sankhya Poorvapada Nadyuttarapada")
+        print("Compound: Avyayi Bhava -> Sankhya Poorvapada Nadyuttarapada")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.a4(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN A5')
     def compound(self, p):
-        print("New compond: Avyayi Bhava -> Nadyuttarapada, Anyapadarthe Samjnyaayaam")
+        print("Compound: Avyayi Bhava -> Nadyuttarapada, Anyapadarthe Samjnyaayaam")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.a5(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN A6')
     def compound(self, p):
-        print("New compond: Avyayi Bhava -> Sankhya Poorvapada Vamshyotarapada")
+        print("Compound: Avyayi Bhava -> Sankhya Poorvapada Vamshyotarapada")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.a6(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada        
 
     @_('LPAREN component HIPHEN component RPAREN A7')
     def compound(self, p):
-        print("New compond: Avyayi Bhava -> Paare Madhye Poorvapada Shashtyuttarapada")
+        print("Compound: Avyayi Bhava -> Paare Madhye Poorvapada Shashtyuttarapada")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.a7(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada 
 
     @_('LPAREN component HIPHEN component RPAREN T1')
     def compound(self, p):
-        print("New compond: Prathama Tatpurusha")
+        print("Compound: Prathama Tatpurusha")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.t1(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN T2')
     def compound(self, p):
-        print("New compond: Dwiteeya Tatpurusha")
+        print("Compound: Dwiteeya Tatpurusha")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.t2(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN T3')
     def compound(self, p):
-        print("New compond: Triteeya Tatpurusha")
+        print("Compound: Triteeya Tatpurusha")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.t3(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
@@ -504,18 +562,18 @@ class SamasaParser(Parser):
                         
     @_('LPAREN component HIPHEN component RPAREN T4')
     def compound(self, p):
-        print("New compond: Chathurthi Tatpurusha")
+        print("Compound: Chathurthi Tatpurusha")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.t4(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN T5')
     def compound(self, p):
-        print("New compond: Panchami Tatpurusha")
+        print("Compound: Panchami Tatpurusha")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.t5(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
@@ -523,423 +581,462 @@ class SamasaParser(Parser):
 
     @_('LPAREN component HIPHEN component RPAREN T6')
     def compound(self, p):
-        print("New compond: Shashti Tatpurusha")
+        print("Compound: Shashti Tatpurusha")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.t6(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN T7')
     def compound(self, p):
-        print("New compond: Sapthami Tatpurusha")
+        print("Compound: Sapthami Tatpurusha")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.t7(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN TN')
     def compound(self, p):
-        print("New compond: Nanj Tatpurusha")
+        print("Compound: Nanj Tatpurusha")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.tn(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN TDS')
     def compound(self, p):
-        print("New compond: Samahara Dwigu")
+        print("Compound: Samahara Dwigu")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.tds(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN TDT')
     def compound(self, p):
-        print("New compond: Taddhitartha Dwigu")
+        print("Compound: Taddhitartha Dwigu")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.tdt(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN TDU')
     def compound(self, p):
-        print("New compond: Uttarapada Dwigu")
+        print("Compound: Uttarapada Dwigu")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.tdu(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN TG')
     def compound(self, p):
-        print("New compond: Gati Samasa")
+        print("Compound: Gati Samasa")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.tg(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN TK')
     def compound(self, p):
-        print("New compond: KuSamasa")
+        print("Compound: KuSamasa")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.tk(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN TP')
     def compound(self, p):
-        print("New compond: Praadi Samasa")
+        print("Compound: Praadi Samasa")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.tk(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN TM')
     def compound(self, p):
-        print("New compond: Mayoora Vyamsakadi Samasa")
+        print("Compound: Mayoora Vyamsakadi Samasa")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.tk(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN TB')
     def compound(self, p):
-        print("New compond: Bahupada Samasa")
+        print("Compound: Bahupada Samasa")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.tb(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN K1')
     def compound(self, p):
-        print("New compond: Visheshana Poorvapada Karmadharaya")
+        print("Compound: Visheshana Poorvapada Karmadharaya")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.k1(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN K2')
     def compound(self, p):
-        print("New compond: Visheshana Uttarapada Karmadharaya")
+        print("Compound: Visheshana Uttarapada Karmadharaya")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.k2(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN K3')
     def compound(self, p):
-        print("New compond: Visheshana Ubhayapada Karmadharaya")
+        print("Compound: Visheshana Ubhayapada Karmadharaya")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.k3(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN K4')
     def compound(self, p):
-        print("New compond: Upamana Poorvapada Karmadharaya")
+        print("Compound: Upamana Poorvapada Karmadharaya")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.k4(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN K5')
     def compound(self, p):
-        print("New compond: Upamana Uttarapada Karmadharaya")
+        print("Compound: Upamana Uttarapada Karmadharaya")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.k5(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN K6')
     def compound(self, p):
-        print("New compond: Avadharana Poorvapada Karmadharaya")
+        print("Compound: Avadharana Poorvapada Karmadharaya")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.k6(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN K7')
     def compound(self, p):
-        print("New compond: Sambhavana Poorvapada Karmadharaya")
+        print("Compound: Sambhavana Poorvapada Karmadharaya")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.k7(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN KM')
     def compound(self, p):
-        print("New compond: Madhyamapada Lopi Karmadharaya")
+        print("Compound: Madhyamapada Lopi Karmadharaya")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.km(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada        
 
     @_('LPAREN component HIPHEN component RPAREN BS2')
     def compound(self, p):
-        print("New compond: DvitIyArtha BahuvrIhi: Samanadhikarana")
+        print("Compound: DvitIyArtha BahuvrIhi: Samanadhikarana")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bs2(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada  
 
     @_('LPAREN component HIPHEN component RPAREN BS3')
     def compound(self, p):
-        print("New compond: TritIyArtha BahuvrIhi: Samanadhikarana")
+        print("Compound: TritIyArtha BahuvrIhi: Samanadhikarana")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bs3(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada  
 
     @_('LPAREN component HIPHEN component RPAREN BS4')
     def compound(self, p):
-        print("New compond: Chaturthyartha BahuvrIhi: Samanadhikarana")
+        print("Compound: Chaturthyartha BahuvrIhi: Samanadhikarana")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bs4(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada 
 
     @_('LPAREN component HIPHEN component RPAREN BS5')
     def compound(self, p):
-        print("New compond: Panchamyartha BahuvrIhi: Samanadhikarana")
+        print("Compound: Panchamyartha BahuvrIhi: Samanadhikarana")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bs5(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada 
 
     @_('LPAREN component HIPHEN component RPAREN BS6')
     def compound(self, p):
-        print("New compond: Shashtyartha BahuvrIhi: Samanadhikarana")
+        print("Compound: Shashtyartha BahuvrIhi: Samanadhikarana")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bs6(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada         
 
     @_('LPAREN component HIPHEN component RPAREN BS7')
     def compound(self, p):
-        print("New compond: Sapthamyartha BahuvrIhi: Samanadhikarana")
+        print("Compound: Sapthamyartha BahuvrIhi: Samanadhikarana")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bs7(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada 
 
     @_('LPAREN component HIPHEN component RPAREN BSD')
     def compound(self, p):
-        print("New compond: Digvachaka BahuvrIhi: Samanadhikarana")
+        print("Compound: Digvachaka BahuvrIhi: Samanadhikarana")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bsd(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada 
 
     @_('LPAREN component HIPHEN component RPAREN BSP')
     def compound(self, p):
-        print("New compond: Praharana Vishayaka BahuvrIhi: Samanadhikarana")
+        print("Compound: Praharana Vishayaka BahuvrIhi: Samanadhikarana")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bsp(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada 
 
     @_('LPAREN component HIPHEN component RPAREN BSG')
     def compound(self, p):
-        print("New compond: Grahana Vishayaka BahuvrIhi: Samanadhikarana")
+        print("Compound: Grahana Vishayaka BahuvrIhi: Samanadhikarana")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bsp(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada 
 
     @_('LPAREN component HIPHEN component RPAREN BSMN')
     def compound(self, p):
-        print("New compond: Asthyartha Madhyamapada Lopi BahuvrIhi: Samanadhikarana")
+        print("Compound: Asthyartha Madhyamapada Lopi BahuvrIhi: Samanadhikarana")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bsmn(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada 
 
     @_('LPAREN component HIPHEN component RPAREN BVP')
     def compound(self, p):
-        print("New compond: Pradi BahuvrIhi: Samanadhikarana")
+        print("Compound: Pradi BahuvrIhi: Samanadhikarana")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bvp(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN BSS')
     def compound(self, p):
-        print("New compond: Sankhyobhaya Pada BahuvrIhi: Samanadhikarana")
+        print("Compound: Sankhyobhaya Pada BahuvrIhi: Samanadhikarana")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bss(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN BSU')
     def compound(self, p):
-        print("New compond: Upamana PoorvaPada BahuvrIhi: Samanadhikarana")
+        print("Compound: Upamana PoorvaPada BahuvrIhi: Samanadhikarana")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bsu(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN BV')
     def compound(self, p):
-        print("New compond: Vyadhikarana BahuvrIhi: Samanadhikarana")
+        print("Compound: Vyadhikarana BahuvrIhi: Samanadhikarana")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bv(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN BVS')
     def compound(self, p):
-        print("New compond: Sankhottarapada Vyadhikarana BahuvrIhi")
+        print("Compound: Sankhottarapada Vyadhikarana BahuvrIhi")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bvs(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN BVSC')
     def compound(self, p):
-        print("New compond: Sahaoorvapada Vyadhikarana BahuvrIhi")
+        print("Compound: Sahaoorvapada Vyadhikarana BahuvrIhi")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bvs_Caps(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN BVU')
     def compound(self, p):
-        print("New compond: Upamanapoorvapada Vyadhikarana BahuvrIhi: Samanadhikarana")
+        print("Compound: Upamanapoorvapada Vyadhikarana BahuvrIhi: Samanadhikarana")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bvu(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN BB')
     def compound(self, p):
-        print("New compond: Bahupada BahuvrIhi: Samanadhikarana")
+        print("Compound: Bahupada BahuvrIhi: Samanadhikarana")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.bb(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN DI')
     def compound(self, p):
-        print("New compond: Itertara Dvandhva")
+        print("Compound: Itertara Dvandhva")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.di(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN DS')
     def compound(self, p):
-        print("New compond: Samahara Dvandhva")
+        print("Compound: Samahara Dvandhva")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.ds(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN TAG')
     def compound(self, p):
-        print("Unmatched Tag " + p.TAG)
-        return ''
+        samasthaPada = "Unmatched Tag:" + p.TAG + "(" + p.component0 + "," + p.component1 + ")"
+        return samasthaPada
+
+    @_('compound PLUS word')
+    def compoundgroup(self, p):
+        samasthaPada = p.compound + "+" + p.word
+        print("Compound: Compound and Word (Sandhi):" + samasthaPada)        
+        return  samasthaPada
+
+    @_('word PLUS word')
+    def compoundgroup(self, p):
+        samasthaPada = p.word0 + "+" + p.word1
+        print("Compound: Wordgroup (Sandhi):" + samasthaPada)        
+        return  samasthaPada
+
+    @_('word HIPHEN word')
+    def compoundgroup(self, p):
+        samasthaPada = p.word0 + "-" + p.word1
+        print("Compound: Wordgroup(Samasa, Missing Tag)" + samasthaPada)        
+        return  samasthaPada
+
+    @_('sentence word')
+    def compoundgroup(self, p):
+        samasthaPada = p.sentence + " " + p.word
+        print("Compound: Wordgroup(Samasa, Word)" + samasthaPada)        
+        return  samasthaPada
+
+    @_('compoundgroup PLUS word')
+    def compoundgroup(self, p):
+        samasthaPada = p.compoundgroup + "+" + p.word
+        print("Compound: Wordgroup (Sandhi):" + samasthaPada)        
+        return  samasthaPada
+
+    @_('word word')
+    def compoundgroup(self, p):
+        samasthaPada = p.word0 + "-" + p.word1
+        print("Compound: Wordgroup(Words)" + samasthaPada)        
+        return  samasthaPada
 
     @_('word')
     def component(self, p):
-        print("Word as component:" + p.word)
+        #print("Word as component:" + p.word)
         return p.word
 
     @_('compound')
     def component(self, p):
-        print("Compound as component:" + p.compound)
+        #print("Compound as component:" + p.compound)
         return p.compound
 
     @_('WORD')
     def word(self, p):
-        print("Got a word " + p.WORD)        
+        #print("Got a word " + p.WORD)        
         return p.WORD
+ 
+    @_('DANDA DANDA NUMBER DANDA DANDA')
+    def shlokaend(self, p):
+        #print("Got a word " + p.WORD)        
+        return '||' + p.NUMBER + '||'
 
-    @_('component')
-    def sentence(self, p):
-        return p.component
-
-    @_('component HIPHEN component')
-    def sentence(self, p):
-        return p.component0 + "-" + p.component1
-
-    @_('compound component')
-    def sentence(self, p):
-        return p.compound + " " + p.component
-
-    @_('sentence DANDA')
-    def sentence(self, p):
-        return p.sentence + "|" + p.DANDA        
 '''
+
+    @_('ANYCHARACTER')
+    def compoundgroup(self, p):
+        return p.ANYCHARACTER 
+
+    @_('compound ANYCHARACTER')
+    def compoundgroup(self, p):
+        return p.compound + " " + p.ANYCHARACTER
+
+    @_('compound compound')
+    def compoundgroup(self, p):
+        return p.compound0 + " " + p.compound1
+
     @_('LPAREN component HIPHEN component RPAREN E')
     def compound(self, p):
-        print("New compond: Ekakosha Dvandhva")
+        print("Compound: Ekakosha Dvandhva")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.E(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada        
 
     @_('LPAREN component HIPHEN component RPAREN S')
     def compound(self, p):
-        print("New compond: Kevala Dvandhva")
+        print("Compound: Kevala Dvandhva")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.S(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada  
 
     @_('LPAREN component HIPHEN component RPAREN U')
     def compound(self, p):
-        print("New compond: Upapada Samasa")
+        print("Compound: Upapada Samasa")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.U(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
 
     @_('LPAREN component HIPHEN component RPAREN D')
     def compound(self, p):
-        print("New compond: Dvirukthi Dvandhva")
+        print("Compound: Dvirukthi Dvandhva")
         print("Poorvapada:" + p.component0)
-        print("Poorvapada:" + p.component1)
+        print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.d(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
         return samasthaPada
@@ -958,14 +1055,17 @@ class compound_analyzer:
 
 
 if __name__ == '__main__':
+    print("\nWelcome to samasa tag analyzer.\n") 
+    print("Author: Harsha M.\n\n") 
+    
     ca = compound_analyzer()
     while True:
         try:
-            input_text = input('samasa > ')
+            input_text = input('samasa_tagged > ')
             translated_text = d_to_i(input_text)
-            print(translated_text)
         except EOFError:
             break
         if translated_text:
             ca.analyze(translated_text)
+            print("\n")
 

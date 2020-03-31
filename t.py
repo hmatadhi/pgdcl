@@ -35,40 +35,52 @@ def check_dvitiiya(input_word):
                    return True
     return False
                
-print("input:" + sys.argv[1])
-scheme = detect.detect(sys.argv[1])
-output=""
-print("input: " + sys.argv[1] + " ---   encoding = " + str(scheme))
-if (str(scheme) == "Devanagari"):
-    v_scheme_map = sanscript.SchemeMap(
-                    sanscript.SCHEMES[sanscript.DEVANAGARI],
-                    sanscript.SCHEMES[sanscript.VELTHUIS])
-    output = sanscript.transliterate(sys.argv[1], scheme_map=v_scheme_map)
-else:
-    print("please enter the input in devanagari")
 
-l = len(output)
-last_token2=output[l-2:]
-last_token1=output[l-1:]
+def pragrahya_check(input_string):
+  is_pragrahya = False;
+  l = len(input_string)
+  last_token2=input_string[l-2:]
+  last_token1=input_string[l-1:]
 
-print(output)
-print(last_token2)
-print(last_token1)
+  print(input_string)
+  print(last_token2)
+  print(last_token1)
 
-s_1_1_11_ending_check=((last_token2 == "ii") or (last_token2 == "uu")
-      or (last_token1 == "e"))
+  s_1_1_11_ending_check=((last_token2 == "ii") or (last_token2 == "uu")
+        or (last_token1 == "e"))
 
-s_1_1_11_dvitiiya_check  = check_dvitiiya(output)
+  s_1_1_11_dvitiiya_check  = check_dvitiiya(input_string)
 
-print("s_1_1_11 पदान्त  ईदूदेद् check =" + str(s_1_1_11_ending_check))
-print("s_1_1_11  द्विवचनं check = " + str(s_1_1_11_dvitiiya_check))
+  print("s_1_1_11 पदान्त  ईदूदेद् check =" + str(s_1_1_11_ending_check))
+  print("s_1_1_11  द्विवचनं check = " + str(s_1_1_11_dvitiiya_check))
 
-if (s_1_1_11_ending_check and s_1_1_11_dvitiiya_check):
-    print("s_1_11 ईदूदेद् and  द्विवचनं both true,  hence प्रगृह्यम् = True")
-elif(s_1_1_11_ending_check):
-    print("s_1_11 ईदूदेद् True but द्विवचनं is False,  hence प्रगृह्यम् = False")    
-elif(s_1_1_11_dvitiiya_check):
-    print("s_1_1_11  द्विवचनं True but ईदूदेद् False,  hence प्रगृह्यम् = False")    
-else:    
-    print("s_1_1_11 Both  द्विवचनं  and ईदूदेद् False, hence  प्रगृह्यम् = False")
+  if (s_1_1_11_ending_check and s_1_1_11_dvitiiya_check):
+      print("s_1_11 ईदूदेद् and  द्विवचनं both true,  hence प्रगृह्यम् = True")
+      is_pragrahya = True
+  elif(s_1_1_11_ending_check):
+      print("s_1_11 ईदूदेद् True but द्विवचनं is False,  hence प्रगृह्यम् = False")    
+  elif(s_1_1_11_dvitiiya_check):
+      print("s_1_1_11  द्विवचनं True but ईदूदेद् False,  hence प्रगृह्यम् = False")    
+  else:    
+      print("s_1_1_11 Both  द्विवचनं  and ईदूदेद् False, hence  प्रगृह्यम् = False")
+  return is_pragrahya
 
+def main():  
+  is_pragrahya = False
+  print("input:" + sys.argv[1])
+  scheme = detect.detect(sys.argv[1])
+  input_string=""
+  print("input: " + sys.argv[1] + " ---   encoding = " + str(scheme))
+  if (str(scheme) == "Devanagari"):
+      v_scheme_map = sanscript.SchemeMap(
+                      sanscript.SCHEMES[sanscript.DEVANAGARI],
+                      sanscript.SCHEMES[sanscript.VELTHUIS])
+      input_string = sanscript.transliterate(sys.argv[1], scheme_map=v_scheme_map)
+  else:
+      print("please enter the input in devanagari")
+
+  is_pragrahya = pragrahya_check(input_string)
+  print("**Pragrahya " + str(is_pragrahya))
+
+if __name__ == '__main__':
+  main()
