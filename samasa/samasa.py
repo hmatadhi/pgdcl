@@ -22,8 +22,8 @@ from sly import Lexer, Parser
 class subanta:
     gen = { 'male': 0, 'female' : 1, 'neuter' : 2 }
     vachana = {'eka':1, 'dvi':2, 'bahu':3}    
-    vibhakthi = { 'prathama':2,'dvitiya':3,'tritiya':4,'chaturthi':5,\
-                  'panchami':6,'shashti':7,'sapthami':8,'sambhodana':9}
+    vibhakthi = { 'prathama':1,'sambhodana':2,'dvitiya':3,'tritiya':4,'chaturthi':5,\
+                  'panchami':6,'shashti':7,'sapthami':8}
 
     tables=[]                   
     def __init__(self, pratipadika):
@@ -47,9 +47,9 @@ class subanta:
                 for tr in lemma_table.find_all('tr'):
                     row_data = list()
                     for th in tr.find_all('th'):
-                        row_data.append(d_to_v(th.text))
+                        row_data.append(th.text)
                     for td in tr.find_all('td'):
-                        row_data.append(d_to_v(td.text))                        
+                        row_data.append(d_to_s(td.text))                        
                     table_data.append(row_data)
         return table_data
 
@@ -69,11 +69,18 @@ class subanta:
         else: 
             self.with_pronoun = False;
             lexid = ""
-            class_ = "inflexion"            
-            lemma_uri="https://sanskrit.inria.fr/cgi-bin/SKT/sktdeclin.cgi"
-            lemma_params_m="lex=SH&q=" + input_word + "&t=VH&g=Mas&font=roma"
-            lemma_params_f="lex=SH&q=" + input_word + "&t=VH&g=Fem&font=roma"
-            lemma_params_n="lex=SH&q=" + input_word + "&t=VH&g=Neu&font=roma"
+            class_ = ""            
+            lemma_uri="https://sanskritlibrary.org/cgi-bin/cgi-skt/decl"
+            lemma_params_m="stem=" + input_word + "&gender=m&lexid=" + lexid + "&filter=SktDevaUnicode"
+            lemma_params_f="stem=" + input_word + "&gender=f&lexid=" + lexid + "&filter=SktDevaUnicode"
+            lemma_params_n="stem=" + input_word + "&gender=n&lexid=" + lexid + "&filter=SktDevaUnicode"             
+
+
+        #class_ = "inflexion"            
+        #lemma_uri="https://sanskrit.inria.fr/cgi-bin/SKT/sktdeclin.cgi"
+        #lemma_params_m="lex=SH&q=" + input_word + "&t=VH&g=Mas&font=deva"
+        #lemma_params_f="lex=SH&q=" + input_word + "&t=VH&g=Fem&font=deva"
+        #lemma_params_n="lex=SH&q=" + input_word + "&t=VH&g=Neu&font=deva"
 
         #lemma_uri="http://tdil-dc.in/cgi-bin/skt_gen/noun/noun_gen.cgi"
         #lemma_params_f="encoding=SLP&rt=" + input_word + "&gen=%E0%A4%B8%E0%A5%8D%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A5%80"
@@ -98,14 +105,11 @@ class subanta:
 
     def get_subantha(self, g,n,v):
         try:
-            flag = self.tables[0][0][1]
+            #flag = self.tables[0][0][0]
             #print("flag=[" + flag  + "]")
             #print("g=" + str(g) )
             #print("n=" + str(n) )
             #print("v=" + str(v) )  
-            if (flag == 's'):
-                if (v > 1):
-                    v = v + 1
             #print("updated v=" + str(v) )                                          
             #print(str(self.tables[g]))
             #print(str(self.tables[g][v]))  
@@ -135,11 +139,9 @@ class subanta:
         if (len(vstrList) == 1):
             vStr =  vstrList[0]
         else:
-            vStr = str(vstrList)                             
-        return  str(vstrList)
+            vStr = json.dumps(vstrList)                             
+        return  vStr
 
-    vibhakthi = { 'prathama':2,'dvitiya':3,'tritiya':4,'chaturthi':5,\
-                  'panchami':6,'shashti':7,'sapthami':8,'sambhodana':9}
     def v1(self):
         return  self.v("prathama")
 
@@ -165,9 +167,37 @@ class subanta:
         return  self.v("sambhodana")
         
 
-def d_to_v(input_string):
+
+def d_to_s(input_string):
     scheme = detect.detect(input_string)
     #print("input: " + input_string + " ---   encoding = " + str(scheme))
+    if (str(scheme) == "Devanagari"):
+      v_scheme_map = sanscript.SchemeMap(
+                      sanscript.SCHEMES[sanscript.DEVANAGARI],
+                      sanscript.SCHEMES[sanscript.SLP1])
+      output_string = sanscript.transliterate(input_string, scheme_map=v_scheme_map)
+      #print("Ascii translation for tokenization:\n")
+      scheme = detect.detect(output_string)
+      #print("output: " + output_string + " ---   encoding = " + str(scheme))
+    else:
+      output_string = input_string
+      #print("please enter the input in devanagari")
+    return output_string
+
+def s_to_d(input_string):
+    scheme = detect.detect(input_string)
+    print("input: " + input_string + " ---   encoding = " + str(scheme))
+    v_scheme_map = sanscript.SchemeMap(
+                  sanscript.SCHEMES[sanscript.SLP1],
+                  sanscript.SCHEMES[sanscript.DEVANAGARI])
+    output_string = sanscript.transliterate(input_string, scheme_map=v_scheme_map)
+    scheme = detect.detect(output_string)
+    print("output: " + output_string + " ---   encoding = " + str(scheme))    
+    return output_string
+
+def d_to_v(input_string):
+    scheme = detect.detect(input_string)
+    print("input: " + input_string + " ---   encoding = " + str(scheme))
     if (str(scheme) == "Devanagari"):
       v_scheme_map = sanscript.SchemeMap(
                       sanscript.SCHEMES[sanscript.DEVANAGARI],
@@ -175,7 +205,7 @@ def d_to_v(input_string):
       output_string = sanscript.transliterate(input_string, scheme_map=v_scheme_map)
       #print("Ascii translation for tokenization:\n")
       scheme = detect.detect(output_string)
-      #print("input: " + output_string + " ---   encoding = " + str(scheme))
+      print("output: " + output_string + " ---   encoding = " + str(scheme))
     else:
       output_string = input_string
       #print("please enter the input in devanagari")
@@ -228,25 +258,25 @@ def i_to_d(input_string):
 class SamasaGenerator():
     def f_a1(self, pp):
         if (pp == "upa"):
-            return d_to_v("समीपं")
+            return d_to_s("समीपं")
         else:
             return (pp)
 
     def f_tp(self, pp):
         if (pp == "pra"):
-            return d_to_v("प्रकृष्टः")
+            return d_to_s("प्रकृष्टः")
         else:
             return pp
 
     def f_U(self, pp):
         if (pp == "kara.h"):
-            return d_to_v("करोति")
+            return d_to_s("करोति")
         else:
             return pp
 
     def f_bsmn(self, pp):
         if (pp == "a"):
-            return d_to_v("अविद्यमानः")
+            return d_to_s("अविद्यमानः")
         else:
             return pp
 
@@ -258,27 +288,27 @@ class SamasaGenerator():
     def a2(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v3() + d_to_v(" विपरीतं वृत्तं");
+        sp =  sub_pp.v3() + d_to_s(" विपरीतं वृत्तं");
         return sp; 
     def a3(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v6() + " " + sub_up.v1() + d_to_v("यस्मिन् देशे");
+        sp =  sub_pp.v6() + " " + sub_up.v1() + d_to_s("यस्मिन् देशे");
         return sp;
     def a4(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v6() + " " + sub_up.v6() + d_to_v("समाहारः");
+        sp =  sub_pp.v6() + " " + sub_up.v6() + d_to_s("समाहारः");
         return sp;
     def a5(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + " " + sub_up.v1() + " " + d_to_v("यस्मिन् देशे");
+        sp =  sub_pp.v1() + " " + sub_up.v1() + " " + d_to_s("यस्मिन् देशे");
         return sp;
     def a6(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v6() + " " + sub_up.v6() + " " + d_to_v("समाहारः");
+        sp =  sub_pp.v6() + " " + sub_up.v6() + " " + d_to_s("समाहारः");
         return sp;
     def a7(self,pp, up):
         sub_pp =subanta(pp)  
@@ -322,17 +352,17 @@ class SamasaGenerator():
     def tn(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  " न " + up;
+        sp =  d_to_s(" न ") + up;
         return sp; 
     def tds(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp = sub_pp.v6("bahu") + " " + sub_up.v6("bahu") + d_to_v(" समाहारः");
+        sp = sub_pp.v6("bahu") + " " + sub_up.v6("bahu") + d_to_s(" समाहारः");
         return sp; 
     def tdt(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  d_to_v("अष्ठसु ") + sub_up.v7("bahu") + d_to_v(" संसृतः");
+        sp =  d_to_s("अष्ठसु ") + sub_up.v7("bahu") + d_to_s(" संसृतः");
         return sp; 
     def tdu(self,pp, up):
         sub_pp =subanta(pp)  
@@ -372,92 +402,96 @@ class SamasaGenerator():
     def k1(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)  
-        sp =   sub_pp.v1() + d_to_v("तत्") + sub_up.v1() + d_to_v("च");
+        sp =   sub_pp.v1() + d_to_s("तत्") + sub_up.v1() + d_to_s("च");
         return sp;
     def k2(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + d_to_v(" च ") + sub_up.v1() + d_to_v("च");
+        sp =  sub_pp.v1() + d_to_s(" च ") + sub_up.v1() + d_to_s("च");
         return sp;
     def k3(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + d_to_v(" च असौ ") + sub_up.v1() + d_to_v("च");
+        sp =  sub_pp.v1() + d_to_s(" च असौ ") + sub_up.v1() + d_to_s("च");
         return sp;
     def k4(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + d_to_v(" इव ") + sub_up.v1() ;
+        sp =  sub_pp.v1() + d_to_s(" इव ") + sub_up.v1() ;
         return sp;
     def k5(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + " " + sub_up.v1() + d_to_v(" इव ");
+        sp =  sub_pp.v1() + " " + sub_up.v1() + d_to_s(" इव ");
         return sp;
     def k6(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + d_to_v(" एव ") + sub_up.v1() ;
+        sp =  sub_pp.v1() + d_to_s(" एव ") + sub_up.v1() ;
         return sp;
     def k7(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + d_to_v(" इति ") + sub_up.v1() ;
+        sp =  sub_pp.v1() + d_to_s(" इति ") + sub_up.v1() ;
         return sp;
     def km(self,pp, up):
         sub_pp =subanta(pp)  
-        sub_up =subanta(up)         
-        sp =  sub_pp.v1() + d_to_v(" प्रियः ") + sub_up.v1() ;
+        sub_up =subanta(up)  
+        y1 = sub_up.v1()
+        print("y1 = " + y1)
+        if ((not y1) or (y1 == "[]")):
+            y1  = up     
+        sp =  sub_pp.v1() + d_to_s(" प्रियः ") + y1 ;
         return sp;
     def bs2(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + " " + sub_up.v1() + d_to_v(" यम्") ;
+        sp =  sub_pp.v1() + " " + sub_up.v1() + d_to_s(" यम्") ;
         return sp;
     def bs3(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + " " + sub_up.v1() + d_to_v(" येन ") ;
+        sp =  sub_pp.v1() + " " + sub_up.v1() + d_to_s(" येन ") ;
         return sp;
     def bs4(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + " " + sub_up.v1() + d_to_v(" यस्मै ")  ;
+        sp =  sub_pp.v1() + " " + sub_up.v1() + d_to_s(" यस्मै ")  ;
         return sp;
     def bs5(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + " " + sub_up.v1() + d_to_v(" यस्मात् ")  ;
+        sp =  sub_pp.v1() + " " + sub_up.v1() + d_to_s(" यस्मात् ")  ;
         return sp;
     def bs6(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + " " + sub_up.v1() + d_to_v(" यस्य ") ;
+        sp =  sub_pp.v1() + " " + sub_up.v1() + d_to_s(" यस्य ") ;
         return sp;
     def bs7(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + " " + sub_up.v1() + d_to_v(" यस्मिन् ") ;
+        sp =  sub_pp.v1() + " " + sub_up.v1() + d_to_s(" यस्मिन् ") ;
         return sp;
     def bsd(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v6() + d_to_v(" च ") + sub_up.v6() + d_to_v(" च यदन्तरालं ");
+        sp =  sub_pp.v6() + d_to_s(" च ") + sub_up.v6() + d_to_s(" च यदन्तरालं ");
         return sp;
     def bsp(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + d_to_v(" च ") + sub_up.v3() + d_to_v(" च प्रहृत्य इदं युद्धं प्रवृत्तं ");
+        sp =  sub_pp.v1() + d_to_s(" च ") + sub_up.v3() + d_to_s(" च प्रहृत्य इदं युद्धं प्रवृत्तं ");
         return sp;
     def bsg(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v7() + d_to_v(" च ") + sub_up.v7() + d_to_v(" च गृहीत्वा इदं युद्धं प्रवृत्तं  ");
+        sp =  sub_pp.v7() + d_to_s(" च ") + sub_up.v7() + d_to_s(" च गृहीत्वा इदं युद्धं प्रवृत्तं  ");
         return sp;
     def bsmn(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  self.f_bsmn(pp) + " " + sub_up.v1() + d_to_v(" यस्य ") ;
+        sp =  self.f_bsmn(pp) + " " + sub_up.v1() + d_to_s(" यस्य ") ;
         return sp;
     def bvp(self,pp, up):
         sub_pp =subanta(pp)  
@@ -467,12 +501,12 @@ class SamasaGenerator():
     def bss(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + d_to_v(" वा ") + sub_up.v1() + d_to_v(" यस्य ") ;
+        sp =  sub_pp.v1() + d_to_s(" वा ") + sub_up.v1() + d_to_s(" यस्य ") ;
         return sp;
     def bsu(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + d_to_v(" इव ") + sub_up.v1() + d_to_v(" यस्य ") ;
+        sp =  sub_pp.v1() + d_to_s(" इव ") + sub_up.v1() + d_to_s(" यस्य ") ;
         return sp;
     def bv(self,pp, up):
         sub_pp =subanta(pp)  
@@ -482,17 +516,17 @@ class SamasaGenerator():
     def bvs(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_up.v6() + " " + up + d_to_v(" यस्य ");
+        sp =  sub_up.v6() + " " + up + d_to_s(" यस्य ");
         return sp;
     def bvs_Caps(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v3() + d_to_v(" सह ") ;
+        sp =  sub_pp.v3() + d_to_s(" सह ") ;
         return sp;
     def bvu(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v6() + d_to_v(" इव ") + up + d_to_v(" यस्य ");
+        sp =  sub_pp.v6() + d_to_s(" इव ") + up + d_to_s(" यस्य ");
         return sp;
     def bb(self,pp, up):
         sub_pp =subanta(pp)  
@@ -502,12 +536,12 @@ class SamasaGenerator():
     def di(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp =  sub_pp.v1() + d_to_v(" च ") + sub_up.v1() + d_to_v(" च ") ;
+        sp =  sub_pp.v1() + d_to_s(" च ") + sub_up.v1() + d_to_s(" च ") ;
         return sp;
     def ds(self,pp, up):
         sub_pp =subanta(pp)  
         sub_up =subanta(up)         
-        sp = sub_pp.v1() + d_to_v(" च ") + sub_up.v1() + d_to_v(" च " );
+        sp = sub_pp.v1() + d_to_s(" च ") + sub_up.v1() + d_to_s(" च " );
         return sp;
     def E(self,pp, up):
         sub_pp =subanta(pp)  
@@ -545,14 +579,15 @@ class SamasaLexer(Lexer):
                TB,TG,TM,TN,TP,TK,\
                TDS,TDU,TDT,\
 #               E,S,U,D,\
-               WORD, HIPHEN, LPAREN, RPAREN, DANDA, PLUS, NUMBER }
+               WORD, NUMBER, HIPHEN, LPAREN, RPAREN, DANDA, DDANDA, PLUS }
     ignore = ' \t'
 
     # Tokens
     HIPHEN   = r'-'
     LPAREN = r'<'
     RPAREN = r'>' 
-    DANDA = r'\|'
+    DANDA = r'[।\|]'
+    DDANDA = r'॥'
     PLUS = r'\+'
     TAG  = r'A[1-7]|Bs[2-7]|Bs[dgpsu]|Bsm[gn]|Bv[psSU]|B[bv]|D[is]|K[1-7]|Km|T[1-7]|T[bgmnpk]|Td[sut]|[KU]'
     #TAG  = r'A[1-6]|Bs[2-7]|Bs[dgpsu]|Bsm[gn]|Bv[sSU]|B[bv]|D[is]|K[1-5]|Km|T[1-7]|T[bgmnp]|Tds|[ESUd].'
@@ -596,6 +631,7 @@ class SamasaLexer(Lexer):
     TAG['T4'] = T4
     TAG['T5'] = T5
     TAG['T6'] = T6
+    TAG['T7'] = T7    
     TAG['Tb'] = TB
     TAG['Tg'] = TG
     TAG['Tm'] = TM
@@ -609,7 +645,7 @@ class SamasaLexer(Lexer):
     #TAG['S.'] = S
     #TAG['U.'] = U
     #TAG['d.'] = D
-    WORD = r'[a-z_~\.\"|]+'
+    WORD = r'[a-zA-Z\.]+'
     NUMBER = r'[0-9]+'
     # Special symbols
     # Ignored pattern
@@ -667,11 +703,7 @@ class SamasaParser(Parser):
     def compoundgroup(self, p):
         return p.compound
 
-    @_('sentence shlokaend')
-    def sentence(self, p):
-        samasthaPada = p.sentence + " " + p.shlokaend
-        print("Sentence: Shloka Completion:" + samasthaPada)          
-        return samasthaPada
+
 
     @_('sentence DANDA')
     def sentence(self, p):
@@ -1225,12 +1257,6 @@ class SamasaParser(Parser):
         #print("Got a word " + p.WORD)        
         return p.WORD
  
-    @_('DANDA DANDA NUMBER DANDA DANDA')
-    def shlokaend(self, p):
-        #print("Got a word " + p.WORD)        
-        return '||' + p.NUMBER + '||'
-
-
     def compound_E(self, p):
         print("Compound: Ekakosha Dvandhva")
         print("Poorvapada:" + p.component0)
@@ -1269,7 +1295,20 @@ class SamasaParser(Parser):
         print("Uttarapada:" + p.component1)
         samasthaPada = self.sg.K(p.component0 , p.component1);
         print("Samasthapada:" + samasthaPada)
-        return samasthaPada        
+        return samasthaPada
+
+    @_('DDANDA NUMBER DDANDA')
+    def shlokaend(self, p):
+        samasthapada = p.DDANDA + str(p.NUMBER) + p.DDANDA
+        print("Got a shloka ending " + samasthapada)        
+        return samasthapada
+
+    @_('sentence shlokaend')
+    def sentence(self, p):
+        samasthaPada = p.sentence + " " + p.shlokaend
+        print("Sentence: Shloka Completion:" + samasthaPada)          
+        return samasthaPada
+
 '''
 
     @_('ANYCHARACTER')
@@ -1305,10 +1344,10 @@ if __name__ == '__main__':
     while True:
         try:
             input_text = input('samasa_tagged > ')
-            translated_text = d_to_v(input_text)
+            translated_text = d_to_s(input_text)
         except EOFError:
             break
         if translated_text:
             outStr = ca.analyze(translated_text)
-            print("outStr=" + v_to_d(outStr))
+            #print("outStr=" + s_to_d(outStr))
 
